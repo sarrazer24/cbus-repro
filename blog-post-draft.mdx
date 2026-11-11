@@ -1,0 +1,101 @@
+---
+title: "Can you tell an LLM to act like a 5th grader? Reproducing CBUS on a budget"
+description: "A small-scale, from-scratch reproduction of a paper on cognitively bounded LLM user simulators, what its metrics actually reward, and what I take from it for AI safety."
+date: "2026-11-11"
+tags: ["llm", "user-simulation", "reproducibility", "ai-safety", "evaluation"]
+draft: true
+---
+
+{/* DRAFT. Every number below is either computed by my code from the authors' released aggregates (checked) or marked TODO until I fill it from my own runs. */}
+
+## The claim
+
+Balog and Bakken (EMNLP Findings 2026, arXiv 2608.30033) ask a simple question: if you prompt an LLM with "act like a 5th grader" and give it a reading test, does it behave like one? Their answer, on 71,789 responses from 2,359 Norwegian students (grades 4 to 6), is no. Persona-prompted models land at 0.95 to 0.99 accuracy with almost no spread between simulated students, while real students average about 0.69 with a wide spread. A random guesser is, strangely, closer to the human score distribution than any frontier model.
+
+Their fix, CBUS, is architectural instead of instructional. Stage 1 extracts at most C propositions from the text (C = 4 for single-pass reading, C = 2 for targeted scanning). Stage 2 answers the questions with the text removed, using only those propositions. The paper reports that this closes most of the gap, and that a random-dropout ablation does about as well, so the capacity cap seems to be doing the work.
+
+## My plan
+
+I reimplemented the simulators, prompts and metrics from scratch (code: github.com/YOUR-USERNAME/cbus-repro), with these constraints: no GPU, a hosted API through OpenRouter, a small budget, and synthetic students instead of the authors' (unreleased) per-student exposure. I wrote my pass/fail criteria before running anything (table below).
+
+## Step 1: do my metrics reproduce the paper's Table 4?
+
+The authors release question-level counts and 20-bin score histograms, so Table 4 can be recomputed exactly offline. Conventions that mattered: absolute gap on response-weighted accuracy, Jensen-Shannon divergence in log base 2 (not the square-root distance), ECE over six equal-width bins of human item difficulty, and Pearson/Spearman on per-question difficulties.
+
+| Row (Llama-3.3-70B) | Abs. gap | JSD | ECE | Pearson | Spearman |
+|---|---|---|---|---|---|
+| Persona baseline (mine = paper) | 0.279 | 0.679 | 0.285 | 0.241 | 0.179 |
+| CBUS-TS, C = 2 (mine = paper) | 0.238 | 0.475 | 0.244 | 0.455 | 0.304 |
+| CBUS-SPR, C = 4 (mine = paper) | 0.037 | 0.093 | 0.069 | 0.301 | 0.297 |
+| Held-out real students (mine = paper) | 0.026 | 0.006 | 0.027 | 0.895 | 0.845 |
+
+All rows match to three decimals (mean of the authors' three runs per row).
+
+## Step 2: what the metrics reward
+
+Recomputing from the released aggregates also let me check some things the headline tables do not say.
+
+**Score spread.** Per-student score standard deviation, estimated from histogram midpoints: about 0.17 for real students, 0.12 for random guessing, 0.04 for the persona baseline, 0.11 for CBUS-SPR. CBUS-SPR fixes most of the collapse but not all of the spread, which is what you would expect if every simulated student shares the same C and the same procedure, plus sampling noise.
+
+**Item-level correlation is mostly question format.** A predictor that only knows the question type (multiple choice, true/false, checkbox), fitted on the held-out half and scored on the test half, gets Pearson 0.523 and Spearman 0.339. A chance-level predictor (one over the number of options) gets 0.458 and 0.370. The paper's best simulator reaches 0.455 Pearson (CBUS-TS, Llama) and 0.370 Spearman (CBUS-SPR, Mixtral). So a high item correlation is not by itself evidence of a human-like simulator.
+
+**Ablations that say what is doing the work.** Random dropout (extract 12, keep 4 at random) scores JSD 0.084 against 0.093 for SPR on Llama, within noise. Answer-noising, which flips correct baseline answers until the mean accuracy matches the students, reaches JSD 0.102 on Llama but an item Spearman of only 0.065: it matches the mean and the shape, carries no information about which questions are hard. Together: how much the simulator is allowed to remember matters much more than which things it remembers.
+
+**Small-N caveats.** With few synthetic students, item metrics are noisy and biased even for pure guessing. My random control (no LLM, seed 0, synthetic students reading about 7 texts each):
+
+| Simulated students | Responses per question | Random control Pearson | Random control JSD |
+|---|---|---|---|
+| 100 | 4.6 | 0.20 | 0.67 |
+| 300 | 13.9 | 0.35 | 0.63 |
+| 700 | 32.1 | 0.42 | 0.61 |
+| 1200 | 55.0 | 0.42 | 0.61 |
+
+Two consequences. Item metrics must be read against a same-N random control. And JSD of my runs is only comparable with other runs of mine, because synthetic exposure inflates it (random guessing gets about 0.61 here versus 0.518 in the paper). For reference, the JSD between an identical population and a sample of n students is about 0.068 at n = 50, 0.034 at 100, 0.018 at 200, 0.007 at 500 and 0.003 at 1198.
+
+## My runs
+
+Backbone: TODO (planned: Llama-3.3-70B-Instruct via OpenRouter; second backbone for C5: TODO). Date of runs: TODO. N per condition: TODO. Temperature: 1.4 (the authors' setting). Option format ("A. ..." lines): my choice, the paper does not specify it.
+
+| Condition | Mean acc | Score SD | Abs. gap | JSD | ECE | Pearson | Spearman | Dropped |
+|---|---|---|---|---|---|---|---|---|
+| Random control (same N) | TODO | TODO | TODO | TODO | TODO | TODO | TODO | 0 |
+| Persona baseline | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
+| CBUS-SPR, C = 4 | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
+| CBUS-TS, C = 2 | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
+| SPR with random dropout | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
+
+Pre-registered criteria (written before the main runs):
+
+| Id | Criterion | Result |
+|---|---|---|
+| C1 | Baseline mean accuracy at least 0.90 and score SD at most 0.06 | TODO |
+| C2 | SPR abs. gap at most 0.15 and JSD at most half of the baseline JSD (my runs only) | TODO |
+| C3 | TS gap stays above 0.15 and TS Pearson above baseline Pearson, versus the same-N control | TODO |
+| C4 | Random-dropout JSD within 0.03 of SPR JSD | TODO |
+| C5 | A bigger backbone is not closer to the students than a small one | TODO |
+
+Capacity sweep (SPR with C = 2, 4, 6, 8, 12): TODO, plot from `scripts/05_capacity_sweep_plot.py`.
+
+## Extension: per-student capacity
+
+Idea: instead of one fixed C, each simulated student draws C uniformly from 2 to 6. Does the score spread move from about 0.11 toward the human 0.17 without hurting gap and ECE? Result: TODO.
+
+## The AI-safety angle (my interpretation, not the paper's)
+
+This section is my own reading, not a claim of the paper.
+
+1. **Instructions are a weak capability control.** The persona prompt says "you cannot know more than a 10-year-old", and the model complies in tone while still solving the task. Telling a capable model to be less capable restricts it only as far as the model chooses to cooperate. The paper's own low-persona ablation shows the backend dependence: one backbone ignores the instruction, another partly follows it.
+2. **Structural limits do not depend on the model's cooperation.** Removing the text and forcing a bottleneck changes what the model can access, not what it is willing to do. That is the same distinction safety people make between asking a model to be safe and building the system so it cannot do the unsafe thing.
+3. **Simulated users inherit the problem.** If user simulators are used to evaluate or train assistants, a simulator that is secretly superhuman makes the assistant look better than it will be with real users, and (more worryingly for agent security work) simulated adversaries or naive users will not exhibit the confusions real ones have.
+
+What this does not show: the paper tests one narrow cognitive limit (working memory) on one task and one population, and the authors themselves note that the simulator idealizes what gets remembered.
+
+## Limitations of my reproduction
+
+Synthetic students instead of the real exposure pattern; small N per condition; one or two backbones; prompts transcribed from the paper but option formatting chosen by me; JSD not comparable with the paper's; the authors' simulation aggregates were used only for the metric checks, not for my own conditions.
+
+## Links
+
+- Paper: arXiv 2608.30033
+- Authors' code and data: github.com/iai-group/emnlp2026-simreading (their data is licensed separately; I do not redistribute it)
+- My code: github.com/YOUR-USERNAME/cbus-repro

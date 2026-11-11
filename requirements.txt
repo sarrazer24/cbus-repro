@@ -1,0 +1,6 @@
+numpy
+pandas
+scipy
+matplotlib
+requests
+nbformat   # only needed to validate the notebook

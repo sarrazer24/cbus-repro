@@ -1,0 +1,16 @@
+# the authors' data/texts are third-party licensed: never commit, link instead
+authors_data/
+emnlp2026-simreading/
+data/
+# raw LLM cache paraphrases licensed texts
+cache.jsonl
+*.jsonl
+# secrets
+.env
+*.key
+# python / notebooks
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+# keep small aggregate outputs, drop big scratch
+runs/*/responses*
