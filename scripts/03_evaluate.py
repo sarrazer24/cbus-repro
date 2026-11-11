@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from cbus import data, metrics as M
 
 ap = argparse.ArgumentParser()
-ap.add_argument("runs", nargs="*", help="run dirs (default: runs/*)")
+ap.add_argument("runs", nargs="*", help="run dirs or quoted globs (default: runs/*)")
 ap.add_argument("--data", default=data.DEFAULT_DATA)
 ap.add_argument("--authors", nargs="*", default=[
     "random", "llm_baseline-llama-3.3-70b-instruct", "cbus_ts-c2-llama-3.3-70b-instruct",
@@ -34,7 +34,11 @@ if not a.no_authors:
         row = {k: float(np.mean([x[k] for x in res])) for k in res[0]}
         rows.append(dict(source="authors (mean of 3)", name=m, n_students=1198, **row))
         hists[m] = data.load_authors_run(m, 1, a.data)[1]
-for d in (a.runs or sorted(glob.glob("runs/*"))):
+
+dirs = []
+for r in a.runs:                      # expand globs ourselves (PowerShell does not)
+    dirs += sorted(glob.glob(r)) or [r]
+for d in (dirs or sorted(glob.glob("runs/*"))):
     if not os.path.exists(os.path.join(d, "question_stats.csv")):
         continue
     qs, h = pd.read_csv(os.path.join(d, "question_stats.csv")), pd.read_csv(os.path.join(d, "score_hist.csv"))
