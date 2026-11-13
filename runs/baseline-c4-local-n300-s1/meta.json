@@ -1,0 +1,33 @@
+{
+ "mode": "baseline",
+ "model": "local",
+ "capacity": null,
+ "capacity_range": null,
+ "students": 300,
+ "texts_per_student": 7,
+ "seed": 1,
+ "workers": 32,
+ "mock": false,
+ "temperature": 1.4,
+ "max_tokens": 1000,
+ "base_url": "http://localhost:8000/v1",
+ "api_key_env": "OPENROUTER_API_KEY",
+ "cache": "/tmp/cache.jsonl",
+ "data": "/tmp/authors_data",
+ "name": "baseline-c4-local-n300-s1",
+ "out_root": "runs",
+ "capacity_used": 4,
+ "n_students_scored": 300,
+ "n_answered": 10205,
+ "n_dropped_answers_or_units": 0,
+ "dropped_stage1_calls": 0,
+ "dropped_answer_replies": 0,
+ "seconds": 433.1,
+ "usage": {
+  "calls": 10205,
+  "cache_hits": 0,
+  "input_tokens": 9231073,
+  "output_tokens": 70400
+ },
+ "option_format": "A. <option> lines (my choice; paper does not specify)"
+}

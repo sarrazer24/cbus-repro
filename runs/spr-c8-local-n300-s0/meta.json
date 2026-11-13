@@ -1,0 +1,33 @@
+{
+ "mode": "spr",
+ "model": "local",
+ "capacity": 8,
+ "capacity_range": null,
+ "students": 300,
+ "texts_per_student": 7,
+ "seed": 0,
+ "workers": 32,
+ "mock": false,
+ "temperature": 1.4,
+ "max_tokens": 1000,
+ "base_url": "http://localhost:8000/v1",
+ "api_key_env": "OPENROUTER_API_KEY",
+ "cache": "/tmp/cache.jsonl",
+ "data": "/tmp/authors_data",
+ "name": "spr-c8-local-n300-s0",
+ "out_root": "runs",
+ "capacity_used": 8,
+ "n_students_scored": 300,
+ "n_answered": 10100,
+ "n_dropped_answers_or_units": 296,
+ "dropped_stage1_calls": 55,
+ "dropped_answer_replies": 11,
+ "seconds": 1746.9,
+ "usage": {
+  "calls": 12211,
+  "cache_hits": 12,
+  "input_tokens": 5235196,
+  "output_tokens": 378608
+ },
+ "option_format": "A. <option> lines (my choice; paper does not specify)"
+}
